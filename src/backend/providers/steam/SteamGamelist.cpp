@@ -19,6 +19,7 @@
 
 #include "LocaleUtils.h"
 #include "Paths.h"
+#include "SteamCommon.h"
 #include "model/gaming/Collection.h"
 #include "model/gaming/Game.h"
 #include "providers/SearchContext.h"
@@ -42,15 +43,25 @@ QString find_steam_datadir()
     QStringList possible_dirs;
 
 #ifdef Q_OS_UNIX
-    // Linux: ~/.local/share/Steam
-    // macOS: ~/Library/Application Support/Steam
-    possible_dirs = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
-    for (QString& dir : possible_dirs)
-        dir.append(QLatin1String("/Steam/"));
+#ifdef Q_OS_LINUX
+    if (providers::steam::has_flatpak_flavor_installed()) {
+        qInfo().noquote() << MSG_PREFIX << tr_log("using flatpak installation");
+        possible_dirs << paths::homePath()
+            % QLatin1String("/.var/app/")
+            % providers::steam::flatpak_pkg_name()
+            % QLatin1String("/data/Steam/");
+    } else {
+#endif
+        // Linux: ~/.local/share/Steam
+        // macOS: ~/Library/Application Support/Steam
+        possible_dirs = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+        for (QString& dir : possible_dirs)
+            dir.append(QLatin1String("/Steam/"));
 
 #ifdef Q_OS_LINUX
-    // in addition on Linux, ~/.steam/steam
-    possible_dirs << paths::homePath() % QLatin1String("/.steam/steam/");
+        // in addition on Linux, ~/.steam/steam
+        possible_dirs << paths::homePath() % QLatin1String("/.steam/steam/");
+    }
 #endif // linux
 #endif // unix
 

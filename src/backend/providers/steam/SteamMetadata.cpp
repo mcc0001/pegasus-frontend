@@ -19,6 +19,7 @@
 
 #include "LocaleUtils.h"
 #include "Paths.h"
+#include "SteamCommon.h"
 #include "model/gaming/Collection.h"
 #include "model/gaming/Game.h"
 #include "providers/JsonCacheUtils.h"
@@ -46,7 +47,7 @@ static constexpr auto JSON_CACHE_DIR = "steam";
 
 QString find_steam_call()
 {
-#if defined(Q_OS_WIN)
+#ifdef Q_OS_WIN
     QSettings reg_base(QLatin1String("HKEY_CURRENT_USER\\Software\\Valve\\Steam"),
                        QSettings::NativeFormat);
     QString reg_value = reg_base.value(QLatin1String("SteamExe")).toString();
@@ -54,7 +55,12 @@ QString find_steam_call()
         return ::utils::escape_command(reg_value);
 #endif
 
-#if defined(Q_OS_MACOS)
+#ifdef Q_OS_LINUX
+    if (providers::steam::has_flatpak_flavor_installed())
+        return QLatin1String("flatpak run ") % providers::steam::flatpak_pkg_name();
+#endif
+
+#ifdef Q_OS_MACOS
     // it should be installed
     return QStringLiteral("open -a Steam --args");
 #else
